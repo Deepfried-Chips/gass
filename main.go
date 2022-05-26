@@ -1,11 +1,9 @@
 package main
 
 import (
-	"net/http"
-	"os"
-
+	"fmt"
 	"github.com/gorilla/mux"
-	log "github.com/sirupsen/logrus"
+	"net/http"
 )
 
 const uploadFilePath = "./data/files"
@@ -13,7 +11,6 @@ const uploadPastePath = "./data/pastes"
 const staticFilePath = "./static"
 
 func main() {
-	log.SetOutput(os.Stdout)
 	config.getConf()
 
 	r := mux.NewRouter()
@@ -39,6 +36,6 @@ func main() {
 	fsr.HandleFunc("/{file}/details", detailsHandler)
 	fsr.HandleFunc("/upload", permissionMiddleware(uploadFileHandler))
 
-	log.Print("Server started on " + config.Host + ":" + config.Port)
-	log.Fatal(http.ListenAndServe(config.Host+":"+config.Port, r))
+	fmt.Println("Server started on " + config.Host + ":" + config.Port)
+	panic(http.ListenAndServe(config.Host+":"+config.Port, r))
 }
