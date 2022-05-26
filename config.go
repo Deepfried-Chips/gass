@@ -39,7 +39,7 @@ func (c *Config) getConf() *Config {
 	return c
 }
 
-func (c *Config) getbyUsername(username string) *user {
+func (c *Config) getUser(username string) *user {
 	for _, u := range c.Users {
 		if u.Username == username {
 			return &u

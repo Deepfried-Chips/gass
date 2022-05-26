@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"html/template"
 	"io/ioutil"
+	"mime/multipart"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -88,7 +89,12 @@ func uploadPasteHandler(w http.ResponseWriter, r *http.Request) {
 		renderError(w, &fileWriteError)
 		return
 	}
-	defer newFile.Close()
+	defer func(newFile *os.File) {
+		err := newFile.Close()
+		if err != nil {
+
+		}
+	}(newFile)
 
 	if _, err := newFile.Write(tpl.Bytes()); err != nil || newFile.Close() != nil {
 		renderError(w, &fileWriteError)
@@ -96,7 +102,10 @@ func uploadPasteHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// send the response
-	w.Write(createResponse("paste", newFilename))
+	_, err = w.Write(createResponse("paste", newFilename))
+	if err != nil {
+		return
+	}
 }
 
 // uploadFileHandler is a upload handler for files.
@@ -119,7 +128,12 @@ func uploadFileHandler(w http.ResponseWriter, r *http.Request) {
 		renderError(w, &invalidFileError)
 		return
 	}
-	defer file.Close()
+	defer func(file multipart.File) {
+		err := file.Close()
+		if err != nil {
+
+		}
+	}(file)
 
 	fileBytes, err := ioutil.ReadAll(file)
 	if err != nil {
@@ -142,7 +156,12 @@ func uploadFileHandler(w http.ResponseWriter, r *http.Request) {
 		renderError(w, &fileWriteError)
 		return
 	}
-	defer newFile.Close() // idempotent, okay to call twice
+	defer func(newFile *os.File) {
+		err := newFile.Close()
+		if err != nil {
+
+		}
+	}(newFile) // idempotent, okay to call twice
 
 	if _, err := newFile.Write(fileBytes); err != nil || newFile.Close() != nil {
 		renderError(w, &fileWriteError)
@@ -150,7 +169,10 @@ func uploadFileHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// send the response
-	w.Write(createResponse("file", newFilename))
+	_, err = w.Write(createResponse("file", newFilename))
+	if err != nil {
+		return
+	}
 }
 
 // permissionMiddleware validates the password provided in a request.
@@ -162,7 +184,7 @@ func permissionMiddleware(next http.HandlerFunc) http.HandlerFunc {
 		var ctx context.Context
 		var user = r.FormValue("user")
 		var pass = r.FormValue("pass")
-		useracc := config.getbyUsername(user)
+		useracc := config.getUser(user)
 
 		if useracc != nil && useracc.Password == pass {
 			fmt.Println("valid user")
@@ -188,7 +210,10 @@ func permissionMiddleware(next http.HandlerFunc) http.HandlerFunc {
 // detailsHandler responds with simple file details.
 func detailsHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	w.Write([]byte(vars["file"]))
+	_, err := w.Write([]byte(vars["file"]))
+	if err != nil {
+		return
+	}
 }
 
 func notFoundHandler(w http.ResponseWriter, r *http.Request) {
