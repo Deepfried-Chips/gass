@@ -20,17 +20,13 @@ func contains(a string, list []string) bool {
 	return false
 }
 
-func validateFileType(fileBytes *[]byte, p *user) (string, error) {
+func validateFileType(fileBytes *[]byte) (string, error) {
 
 	// check file type, detectcontenttype only needs the first 512 bytes
 	filetype := http.DetectContentType(*fileBytes)
 	fileEndings, err := mime.ExtensionsByType(filetype)
 	if err != nil {
 		return "", &fileTypeReadError
-	}
-	// check file type is in list of accepted filetypes.
-	if validfile := contains(fileEndings[0], p.FileTypes); validfile == false {
-		return "", &unsupportedFileError
 	}
 
 	return fileEndings[0], nil

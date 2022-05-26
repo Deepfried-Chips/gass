@@ -39,15 +39,15 @@ type result struct {
 	DeleteKey string // unused atm.
 }
 
-// uploadPasteHandler is a upload handler for text.
+// uploadPasteHandler is an upload handler for text.
 func uploadPasteHandler(w http.ResponseWriter, r *http.Request) {
 
 	// get permissions
-	perms := r.Context().Value(userPermission).(*user)
+	perms := r.Context().Value(userPermission).(string)
 
-	r.Body = http.MaxBytesReader(w, r.Body, perms.MaxUpload<<20)
+	r.Body = http.MaxBytesReader(w, r.Body, int64(config.getMaxUpload(perms, db)<<20))
 	fmt.Println(r)
-	if err := r.ParseMultipartForm(perms.MaxUpload << 20); err != nil {
+	if err := r.ParseMultipartForm(int64(config.getMaxUpload(perms, db) << 20)); err != nil {
 		fmt.Println(err)
 		renderError(w, &fileSizeError)
 		return
@@ -112,13 +112,13 @@ func uploadPasteHandler(w http.ResponseWriter, r *http.Request) {
 func uploadFileHandler(w http.ResponseWriter, r *http.Request) {
 
 	// get permissions
-	perms := r.Context().Value(userPermission).(*user)
+	perms := r.Context().Value(userPermission).(string)
 
 	// validate file size
-	r.Body = http.MaxBytesReader(w, r.Body, perms.MaxUpload<<20)
-	if err := r.ParseMultipartForm(perms.MaxUpload << 20); err != nil {
+	r.Body = http.MaxBytesReader(w, r.Body, int64(config.getMaxUpload(perms, db)<<20))
+	if err := r.ParseMultipartForm(int64(config.getMaxUpload(perms, db) << 20)); err != nil {
 		renderError(w, &fileSizeError)
-		fmt.Println(perms.MaxUpload)
+		fmt.Println(int64(config.getMaxUpload(perms, db)))
 		return
 	}
 
@@ -142,7 +142,7 @@ func uploadFileHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// check file type.
-	fileType, err := validateFileType(&fileBytes, perms)
+	fileType, err := validateFileType(&fileBytes)
 	if err != nil {
 		renderError(w, err.(*httpError))
 		return
@@ -184,18 +184,20 @@ func permissionMiddleware(next http.HandlerFunc) http.HandlerFunc {
 		var ctx context.Context
 		var user = r.FormValue("user")
 		var pass = r.FormValue("pass")
-		useracc := config.getUser(user)
+		var uservalidity = config.getUserValidity(user, db)
+		var userpass = config.getPassHash(user, db)
+		var useradmin = config.getUserAdmin(user, db)
 
-		if useracc != nil && useracc.Password == pass {
+		if uservalidity && userpass == pass {
 			fmt.Println("valid user")
-			// check password, TODO PASSWORD HASHES
-			if useracc.isAdmin {
+			// check password
+			if useradmin {
 				fmt.Println("Admin Upload")
-				ctx = context.WithValue(ctx, userPermission, &useracc)
+				ctx = context.WithValue(ctx, userPermission, user)
 				next.ServeHTTP(w, r.WithContext(ctx))
 			} else {
 				fmt.Println("Default Upload")
-				ctx = context.WithValue(ctx, userPermission, &useracc)
+				ctx = context.WithValue(ctx, userPermission, user)
 				next.ServeHTTP(w, r.WithContext(ctx))
 			}
 
