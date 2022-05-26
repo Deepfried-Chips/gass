@@ -20,7 +20,7 @@ func contains(a string, list []string) bool {
 	return false
 }
 
-func validateFileType(fileBytes *[]byte, p *permission) (string, error) {
+func validateFileType(fileBytes *[]byte, p *user) (string, error) {
 
 	// check file type, detectcontenttype only needs the first 512 bytes
 	filetype := http.DetectContentType(*fileBytes)
@@ -38,7 +38,10 @@ func validateFileType(fileBytes *[]byte, p *permission) (string, error) {
 
 func randomToken(len int) string {
 	b := make([]byte, len)
-	rand.Read(b)
+	_, err := rand.Read(b)
+	if err != nil {
+		return ""
+	}
 	return fmt.Sprintf("%x", b)
 }
 
