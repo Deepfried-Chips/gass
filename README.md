@@ -1,5 +1,5 @@
 # gass
-Go Assisted ShareX Server kekeke
+Go ShareX Server kekeke
 
 ## TODO
 - password hashing
